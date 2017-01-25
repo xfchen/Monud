@@ -1,6 +1,15 @@
-{-# LANGUAGE OverloadedStrings, TemplateHaskell #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TemplateHaskell #-}
 
 module UI where
+
+import Control.Applicative
+
+import Control.Monad (void)
+import Data.Monoid ((<>))
+import qualified Graphics.Vty as V
+import Data.String.Conversions (cs)
+
 
 
 import Lens.Micro
@@ -9,16 +18,14 @@ import qualified Graphics.Vty as V
 
 
 
-import Control.Applicative
-
-import Control.Monad (void)
-import Data.Monoid ((<>))
-import qualified Graphics.Vty as V
-
 import qualified Brick.Types as T
 import qualified Brick.Main as M
 import qualified Brick.Widgets.Center as C
 import qualified Brick.Widgets.Border as B
+import qualified Brick.Widgets.Edit as E
+
+
+
 import Brick.Types
   ( Widget
   , ViewportType(Horizontal, Vertical, Both)
@@ -32,14 +39,19 @@ import Brick.Widgets.Core
   , hBox
   , vBox
   , viewport
-  , str
+  , txt
   )
 
 import MudData
 
 
-data Name= Output -- Window that displays the output
-         |Input   -- Window (just the bottom line) to input commands
+
+-- very simple UI layout
+-- a top viewport for output and
+-- a one row editor for input
+
+data Name= Output -- Viewport to display the output
+         |Input   -- Edit (just line) to input commands
          deriving (Ord, Show, Eq)
 
 drawUi :: MudState -> [T.Widget Name]
@@ -47,21 +59,21 @@ drawUi st = [ui]
     where 
         ui = C.center $ B.border $ -- hLimit 80 $ vLimit 24 $
              vBox [ top , B.hBorder , bottom ]
-        top =  viewport Output Vertical $ str $ st^.output
-        bottom =  vLimit 1 $ viewport Input Both $ str $ st^.command
+        top =  viewport Output Vertical $ txt $ st^.output
+        bottom =  E.renderEditor True (E.editorText Input (txt . last) (Just 1) (st^.command))
 
 
 outputScroll :: M.ViewportScroll Name
 outputScroll = M.viewportScroll Output
 
-inputScroll :: M.ViewportScroll Name
-inputScroll = M.viewportScroll Input
 
+
+-- appEvent needs major work 
+-- 1. Kchar events would update the input window
+-- 2. add a custom event to handle output received from the host
 appEvent :: MudState -> T.BrickEvent Name e -> T.EventM Name (T.Next MudState)
 appEvent st (T.VtyEvent (V.EvKey V.KDown []))  = M.vScrollBy outputScroll 1 >> M.continue st
 appEvent st (T.VtyEvent (V.EvKey V.KUp []))    = M.vScrollBy outputScroll (-1) >> M.continue st
-appEvent st (T.VtyEvent (V.EvKey V.KDown [V.MCtrl])) = M.vScrollBy inputScroll 1 >> M.continue st
-appEvent st (T.VtyEvent (V.EvKey V.KUp [V.MCtrl]))  = M.vScrollBy inputScroll (-1) >> M.continue st 
 appEvent st (T.VtyEvent (V.EvKey V.KEsc [])) = M.halt st 
 appEvent st _ = M.continue st
 
@@ -74,5 +86,3 @@ app =
           , M.appChooseCursor = M.neverShowCursor
           }
 
-main :: IO ()
-main = void $ M.defaultMain app ()
