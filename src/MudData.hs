@@ -1,5 +1,21 @@
+{-# LANGUAGE TemplateHaskell #-}
+
+
 module MudData where
 
-encoding = "GB18030"
-hostname = "pkuxkx.net"
-port     = "5555"
+import Lens.Micro
+import Lens.Micro.TH
+
+
+type Output = String -- outut from server
+
+type Input = String -- commands that player inputs
+
+data MudState = MudState 
+                { _output :: Output -- output, separaed by newline
+                , _history  :: [Input] -- command history
+                , _command :: Input -- current command, possibly imcomplete
+                }
+
+
+makeLenses ''MudState
