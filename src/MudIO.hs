@@ -1,5 +1,9 @@
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE RankNTypes #-}
 
-module Net where
+
+module MudIO where
 
 
 
@@ -7,15 +11,12 @@ import Network.Socket hiding (send, sendTo, recv, recvFrom)
 import Network.Socket.ByteString
 import Network.BSD
 import System.IO
-
-
-
-
-
+--import qualified Data.ByteString as BS
+--import qualified Data.Text       as T
 
 
 connectMud :: HostName -- ^ Remote hostname, or localhost
-           -> String   -- ^ Port number of name; 5555 is default
+           -> String -- ^ Port number of name; 5555 is default
            -> IO Handle  -- ^ Handle to use for mud
 
 connectMud hostname port = do
@@ -29,10 +30,3 @@ connectMud hostname port = do
           return  h
 
 -- end of function connectMud
-
-closeMud :: Handle -> IO ()
-closeMud h = hClose h
-
--- end of function closeMud
-
-

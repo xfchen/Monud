@@ -5,21 +5,22 @@ module UI where
 
 import Control.Applicative
 import Control.Monad
+import Control.Monad.Trans
+
+import System.IO
 
 import Control.Monad (void)
 import Data.Monoid ((<>))
 import qualified Graphics.Vty as V
 --import Data.String.Conversions (cs)
 import qualified Data.ByteString as BS
+import qualified Data.ByteString.Char8 as C8
 import Data.Text (Text)
 import Data.Text.Encoding
-
-
 
 import Lens.Micro
 import Lens.Micro.TH
 import qualified Graphics.Vty as V
-
 
 
 import qualified Brick.Types as T
@@ -45,6 +46,10 @@ import Brick.Widgets.Core
   , visible
   )
 
+
+
+import MudIO 
+import Host
 -- very simple UI layout
 -- a top viewport for output and
 -- a one row editor for input
@@ -55,11 +60,11 @@ data Name= Output -- Viewport to display the output
 
 
 data UIState =
-     UIState { --_display :: T.Viewport             -- Viewport widget to display the output
-               _cli     :: E.Editor Text Name   -- Editor widget to input commands
+     UIState { _cli     :: E.Editor Text Name   -- Editor widget to input commands
              , _output  :: Text                   -- Output received from the host
              , _history :: [Text]                 -- History of commands inputed by user
              , _cmd     :: Text                   -- Current command, possibly incomplete
+             , _handle  :: IO Handle
              }
 
 
@@ -80,21 +85,35 @@ drawUi st = [ui]
 outputScroll :: M.ViewportScroll Name
 outputScroll = M.viewportScroll Output
 
+
+
 initialState :: UIState
 initialState = UIState
      --viewport Output 
      (E.editorText Input (txt . last) (Just 1) "") 
-      ""
-      []
-      ""
+     ""
+     []
+     ""
+     (connectMud hostname port)
+
 
 data CustomEvent = ServerOutput BS.ByteString
+
 
 appEvent :: UIState -> T.BrickEvent Name CustomEvent -> T.EventM Name (T.Next UIState)
 appEvent st ev = 
     case ev of
-         T.VtyEvent (V.EvKey V.KEnter [])  -- Enter key pressed, send the editor content to server
-             -> M.continue $ st & cmd .~ (head $ E.getEditContents $ st^.cli)
+         T.VtyEvent (V.EvKey V.KEnter [])  -- Enter key pressed, here we need to perform a few things at once
+                                           -- 1. update st^.cmd with editor content
+                                           -- 2. send the command to the server (some IO)
+                                           -- 3. clear the editor
+                                           -- 4. continue the application
+             -> do
+                    let current= head $ E.getEditContents (st^.cli)
+          --          (lift ( E.applyEdit (const ""))) (st^.cli)
+                    liftIO $ C8.hPutStrLn (st ^. handle) $ encodeUtf8 current 
+                    M.continue (st & cmd .~ current & history %~ ( ++ [current] )) 
+                
                   
          T.VtyEvent (V.EvKey V.KEsc [])    -- Esc pressed, quit the program
              -> M.halt st
@@ -102,9 +121,9 @@ appEvent st ev =
              -> T.handleEventLensed st cli E.handleEditorEvent x >>= M.continue 
          T.AppEvent (ServerOutput bs)     -- To handle custome evenets; i.e. when outpus is received from server
                                           -- This is a tricky function since it does several things at once; 
-                                          -- In the first pair of brackets we define a lambda function
-                                          -- And in the second pair we update the UIState with the output we receive from the server and pass the new state to the lambda function
-             -> (\st -> (M.vScrollToEnd outputScroll >> M.continue st)) (st & output %~ (<> (decodeUtf8 bs)))
+                                          -- It updates the UIState with the output send through the BChannel
+                                          -- and then scrolls the viewport before the application continues
+             -> M.vScrollToEnd outputScroll >> M.continue (st & output %~ (<> (decodeUtf8 bs)))
          _   -> M.continue st
 
 
