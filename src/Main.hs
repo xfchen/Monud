@@ -1,29 +1,71 @@
-import Data.Bits
+{-# LANGUAGE OverloadedStrings #-}
 
-import Data.Maybe
-import Data.List
+
+--------------------------------------------------
+import Control.Applicative
 import Control.Monad
-import Control.Exception
+import Control.Monad.Trans
+import Control.Concurrent
+
 import System.IO
-import qualified UI.HSCurses.Curses as Curses
-import qualified UI.HSCurses.CursesHelper as CursesH
+
+import Control.Monad (void)
+import Data.Monoid ((<>))
+import qualified Graphics.Vty as V 
+--import Data.String.Conversions (cs)
+import qualified Data.ByteString as BS
+import qualified Data.ByteString.Char8 as C8
+import Data.Text (Text)
+import Data.Text.Encoding
+
+import Lens.Micro
+import Lens.Micro.TH
+import qualified Graphics.Vty as V
+
+
+import qualified Brick.Types as T
+import qualified Brick.Main as M
+import qualified Brick.Widgets.Center as C
+import qualified Brick.Widgets.Border as B
+import qualified Brick.Widgets.Edit as E
+import Brick.BChan
+
+
+import Brick.Widgets.Core
+  ( txt )
 
 
 
-import MudData
-import Net
+
+
+import MudIO
 import UI
+import Host
 
-
- 
+--initialState :: UIState
 
 main :: IO ()
-main = 
-   do h <- connectMud hostname port 
-      outPut <- hGetContents h
-      runCurses outPut `finally` CursesH.end -- Must end curses session even exceptions are raised
-   where runCurses outPut =
-           do CursesH.start
-              cstyles <- CursesH.convertStyles styles
-              Curses.cursSet Curses.CursorVisible
-              runMud cstyles outPut mudMain 
+main = do
+
+     handle <- connectMud hostname port
+     chan <- newBChan 10
+     writeBChan chan $ ServerOutput "Connecting, please wait\n"
+     let initialState = UIState
+          (E.editorText Input (txt . last) (Just 1) "")
+          ""
+          []
+          ""
+          handle
+
+     cfg <- V.standardIOConfig
+ 
+     forkIO $ forever $ do
+         output <- BS.hGetContents handle 
+         
+         when (not $ BS.null output)  
+              $  writeBChan chan (ServerOutput $ output <> "\n")
+
+                              
+       
+     void $ M.customMain (V.mkVty cfg) (Just chan) app initialState
+
