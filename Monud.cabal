@@ -60,7 +60,7 @@ executable Monud
   -- other-extensions:    
   
   -- Other library packages from which modules are imported.
-  build-depends:       base >=4.6 && <4.7, mtl, network, brick
+  build-depends:       base >=4.6 && <4.7, text, bytestring, mtl, network, brick, vty, microlens, microlens-th
   
   -- Directories containing source files.
   hs-source-dirs:      src
