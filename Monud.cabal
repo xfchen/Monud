@@ -60,7 +60,7 @@ executable Monud
   -- other-extensions:    
   
   -- Other library packages from which modules are imported.
-  build-depends:       base >=4.6 && <4.7, text, bytestring, mtl, network, brick, vty, microlens, microlens-th
+  build-depends:       base >=4.6 && <4.7, text, text-zipper, bytestring, mtl, network, brick, vty, microlens, microlens-th
   
   -- Directories containing source files.
   hs-source-dirs:      src
@@ -68,3 +68,5 @@ executable Monud
   -- Base language which the package is written in.
   default-language:    Haskell2010
   
+
+  ghc-options: -threaded
