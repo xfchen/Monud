@@ -1,4 +1,5 @@
 {-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 
 module MudData where
@@ -6,15 +7,19 @@ module MudData where
 import Lens.Micro
 import Lens.Micro.TH
 
+import Data.Text (Text)
 
-type Output = String -- outut from server
 
-type Input = String -- commands that player inputs
+type Output = Text -- outut from server
+
+type Command = Text -- commands that player inputs
+
+type History = [Command]
 
 data MudState = MudState 
                 { _output :: Output -- output, separaed by newline
-                , _history  :: [Input] -- command history
-                , _command :: Input -- current command, possibly imcomplete
+                , _history  :: History -- command history
+                , _command :: Command -- current command, possibly imcomplete
                 }
 
 
