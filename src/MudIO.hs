@@ -26,7 +26,7 @@ connectMud hostname port = do
           setSocketOption sock KeepAlive 1
           connect sock (addrAddress serveraddr)
           h <- socketToHandle sock ReadWriteMode
-          hSetBuffering h (BlockBuffering Nothing)
+          hSetBuffering h (NoBuffering)
           return  h
 
 -- end of function connectMud
