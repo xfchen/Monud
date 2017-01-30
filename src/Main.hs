@@ -47,6 +47,7 @@ import Host
 
 main :: IO ()
 main = do
+     file <- openFile "log.txt" WriteMode
 
      handle <- connectMud hostname port
      chan <- newBChan 10
@@ -62,6 +63,7 @@ main = do
  
      forkIO $ forever $ do
          output <- TIO.hGetLine handle 
+         TIO.hPutStrLn file output
           
          when (not $ Data.Text.null output)  
               $  writeBChan chan (ServerOutput $ output <> "\n")
@@ -69,4 +71,5 @@ main = do
                               
        
      void $ M.customMain (V.mkVty cfg) (Just chan) app initialState
+     hClose file
 

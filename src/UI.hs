@@ -122,5 +122,5 @@ app =
           , M.appStartEvent = return
           , M.appHandleEvent = appEvent
           , M.appAttrMap = const $ attrMap V.defAttr []
-          , M.appChooseCursor = M.neverShowCursor
+          , M.appChooseCursor = M.showFirstCursor
           }
