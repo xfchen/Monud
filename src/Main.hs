@@ -13,10 +13,11 @@ import Control.Monad (void)
 import Data.Monoid ((<>))
 import qualified Graphics.Vty as V 
 --import Data.String.Conversions (cs)
-import qualified Data.ByteString as BS
-import qualified Data.ByteString.Char8 as C8
-import Data.Text (Text)
-import Data.Text.Encoding
+--import qualified Data.ByteString as BS
+--import qualified Data.ByteString.Char8 as C8
+import Data.Text (Text, null)
+import qualified Data.Text.IO as TIO
+--import Data.Text.Encoding
 
 import Lens.Micro
 import Lens.Micro.TH
@@ -60,9 +61,9 @@ main = do
      cfg <- V.standardIOConfig
  
      forkIO $ forever $ do
-         output <- BS.hGetContents handle 
-         
-         when (not $ BS.null output)  
+         output <- TIO.hGetLine handle 
+          
+         when (not $ Data.Text.null output)  
               $  writeBChan chan (ServerOutput $ output <> "\n")
 
                               

@@ -13,10 +13,11 @@ import Control.Monad (void)
 import Data.Monoid ((<>))
 import qualified Graphics.Vty as V
 --import Data.String.Conversions (cs)
-import qualified Data.ByteString as BS
-import qualified Data.ByteString.Char8 as C8
-import Data.Text (Text,empty)
-import Data.Text.Encoding
+--import qualified Data.ByteString as BS
+--import qualified Data.ByteString.Char8 as C8
+import Data.Text (Text)
+import Data.Text.IO as TIO
+--import Data.Text.Encoding
 import Data.Text.Zipper
 
 import Lens.Micro
@@ -62,7 +63,7 @@ data Name= Output -- Viewport to display the output
 
 
 data UIState =
-     UIState { _cli     :: E.Editor Text Name   -- Editor widget to input commands
+     UIState { _cli     :: E.Editor Text Name     -- Editor widget to input commands
              , _output  :: Text                   -- Output received from the host
              , _history :: [Text]                 -- History of commands inputed by user
              , _cmd     :: Text                   -- Current command, possibly incomplete
@@ -88,9 +89,7 @@ outputScroll :: M.ViewportScroll Name
 outputScroll = M.viewportScroll Output
 
 
-
-
-data CustomEvent = ServerOutput BS.ByteString
+data CustomEvent = ServerOutput Text
 
 
 appEvent :: UIState -> T.BrickEvent Name CustomEvent -> T.EventM Name (T.Next UIState)
@@ -103,17 +102,17 @@ appEvent st ev =
                                            -- 4. continue the application
              -> do
                     let current= head $ E.getEditContents (st^.cli)
-                    liftIO $ C8.hPutStrLn (st ^. handle) $ encodeUtf8 current 
-                    M.continue (st & cmd .~ current & history %~ ( ++ [current] ) & cli %~ E.applyEdit clearZipper)
+                    liftIO $ TIO.hPutStrLn (st ^. handle) $ current 
+                    M.continue (st & cmd .~ current & history %~ ( ++ [current] ) & output %~ (<> current) & cli %~ E.applyEdit clearZipper)
          T.VtyEvent (V.EvKey V.KEsc [])    -- Esc pressed, quit the program
              -> M.halt st
          T.VtyEvent x                    -- Let the default editor event handler take care of this 
              -> T.handleEventLensed st cli E.handleEditorEvent x >>= M.continue 
-         T.AppEvent (ServerOutput bs)     -- To handle custome evenets; i.e. when outpus is received from server
+         T.AppEvent (ServerOutput t)     -- To handle custome evenets; i.e. when outpus is received from server
                                           -- This is a tricky function since it does several things at once; 
                                           -- It updates the UIState with the output send through the BChannel
                                           -- and then scrolls the viewport before the application continues
-             -> M.vScrollToEnd outputScroll>> M.vScrollBy outputScroll (length(C8.split '\n' bs)) >> M.continue (st & output %~ (<> (decodeUtf8 bs)))
+             -> M.vScrollToEnd outputScroll>> M.continue (st & output %~ (<> t))
          _   -> M.continue st
 
 
