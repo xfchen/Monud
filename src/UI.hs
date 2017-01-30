@@ -47,6 +47,7 @@ import Brick.Widgets.Core
   , txt
   , vBox
   , visible
+  , hLimit
   )
 
 
@@ -79,7 +80,7 @@ makeLenses ''UIState
 drawUi :: UIState -> [T.Widget Name]
 drawUi st = [ui]
     where 
-        ui = C.center $ B.border $ -- hLimit 80 $ vLimit 24 $
+        ui = C.center $ --B.border $  hLimit 80 $ -- $ vLimit 24 $
              vBox [ top , B.hBorder , bottom ]
         top =  viewport Output Vertical $ txt $ st^.output
         bottom =  E.renderEditor True $ st^.cli --(E.editorText Input (txt . last) (Just 1) (st^.cmd))
@@ -105,7 +106,7 @@ appEvent st ev =
                     liftIO $ TIO.hPutStrLn (st ^. handle) $ current 
                     M.continue (st & cmd .~ current & history %~ ( ++ [current] ) & output %~ (<> current) & cli %~ E.applyEdit clearZipper)
          T.VtyEvent (V.EvKey V.KEsc [])    -- Esc pressed, quit the program
-             -> M.halt st
+             -> liftIO (hClose (st ^. handle)) >> M.halt st
          T.VtyEvent x                    -- Let the default editor event handler take care of this 
              -> T.handleEventLensed st cli E.handleEditorEvent x >>= M.continue 
          T.AppEvent (ServerOutput t)     -- To handle custome evenets; i.e. when outpus is received from server
