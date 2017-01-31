@@ -53,7 +53,6 @@ import Brick.Widgets.Core
 
 
 import MudIO 
-import Host
 -- very simple UI layout
 -- a top viewport for output and
 -- a one row editor for input
@@ -80,7 +79,7 @@ makeLenses ''UIState
 drawUi :: UIState -> [T.Widget Name]
 drawUi st = [ui]
     where 
-        ui = C.center $ --B.border $  hLimit 80 $ -- $ vLimit 24 $
+        ui = C.center $  --B.border $  hLimit 80 $ -- $ vLimit 24 $
              vBox [ top , B.hBorder , bottom ]
         top =  viewport Output Vertical $ txt $ st^.output
         bottom =  E.renderEditor True $ st^.cli --(E.editorText Input (txt . last) (Just 1) (st^.cmd))
@@ -90,7 +89,7 @@ outputScroll :: M.ViewportScroll Name
 outputScroll = M.viewportScroll Output
 
 
-data CustomEvent = ServerOutput Text
+--data CustomEvent = ServerOutput Text
 
 
 appEvent :: UIState -> T.BrickEvent Name CustomEvent -> T.EventM Name (T.Next UIState)
