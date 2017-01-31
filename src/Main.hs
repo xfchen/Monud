@@ -9,6 +9,8 @@ import Control.Concurrent
 
 import System.IO
 
+import System.Environment
+
 import Control.Monad (void)
 import Data.Monoid ((<>))
 import qualified Graphics.Vty as V 
@@ -17,7 +19,7 @@ import qualified Graphics.Vty as V
 --import qualified Data.ByteString.Char8 as C8
 import Data.Text (Text, null)
 import qualified Data.Text.IO as TIO
---import Data.Text.Encoding
+import Data.Text.Encoding
 
 import Lens.Micro
 import Lens.Micro.TH
@@ -41,14 +43,13 @@ import Brick.Widgets.Core
 
 import MudIO
 import UI
-import Host
 
---initialState :: UIState
 
 main :: IO ()
 main = do
-     file <- openFile "log.txt" WriteMode
 
+     (hostname:port:_) <- getArgs
+     
      handle <- connectMud hostname port
      chan <- newBChan 10
      writeBChan chan $ ServerOutput "Connecting, please wait\n"
@@ -63,7 +64,6 @@ main = do
  
      forkIO $ forever $ do
          output <- TIO.hGetLine handle 
-         TIO.hPutStrLn file output
           
          when (not $ Data.Text.null output)  
               $  writeBChan chan (ServerOutput $ output <> "\n")
@@ -71,5 +71,4 @@ main = do
                               
        
      void $ M.customMain (V.mkVty cfg) (Just chan) app initialState
-     hClose file
 
