@@ -8,11 +8,17 @@ module MudIO where
 
 
 import Network.Socket hiding (send, sendTo, recv, recvFrom)
-import Network.Socket.ByteString
 import Network.BSD
-import System.IO
---import qualified Data.ByteString as BS
---import qualified Data.Text       as T
+import System.IO hiding (hGetLine)
+import Data.Text  (Text)
+import Data.Text.IO (hGetLine)
+--import Control.Monad (unless)
+--
+import Data.Monoid ((<>))
+
+import Pipes
+
+import Brick.BChan
 
 
 connectMud :: HostName -- ^ Remote hostname, or localhost
@@ -30,3 +36,16 @@ connectMud hostname port = do
           return  h
 
 -- end of function connectMud
+
+readMudLine:: Handle -> Producer Text IO ()
+readMudLine h = 
+     (liftIO $ hGetLine h) >>= yield
+
+
+
+data CustomEvent = ServerOutput Text
+
+displayLine :: BChan CustomEvent -> Consumer Text IO ()
+displayLine c = do
+     t <- await
+     liftIO $ writeBChan c (ServerOutput  $ t <> "\n")

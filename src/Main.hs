@@ -40,6 +40,7 @@ import Brick.Widgets.Core
 
 
 
+import Pipes
 
 import MudIO
 import UI
@@ -62,11 +63,11 @@ main = do
 
      cfg <- V.standardIOConfig
  
-     forkIO $ forever $ do
-         output <- TIO.hGetLine handle 
+     forkIO $ forever $ runEffect $ (readMudLine handle) >-> (displayLine chan) -- pipe version making manipulating output easier
+--         output <- TIO.hGetLine handle 
           
-         when (not $ Data.Text.null output)  
-              $  writeBChan chan (ServerOutput $ output <> "\n")
+--         when (not $ Data.Text.null output)  
+--              $  writeBChan chan (ServerOutput $ output <> "\n")
 
                               
        
