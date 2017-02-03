@@ -1,7 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 
---------------------------------------------------
 import Control.Applicative
 import Control.Monad
 import Control.Monad.Trans
@@ -9,14 +8,15 @@ import Control.Concurrent
 
 import System.IO
 
-import System.Environment
-
 import Control.Monad (void)
 import Data.Monoid ((<>))
-import qualified Graphics.Vty as V
-import Data.Text (Text, null)
+import qualified Graphics.Vty as V 
+--import Data.String.Conversions (cs)
+import qualified Data.ByteString as BS
+import qualified Data.ByteString.Char8 as C8
+import Data.Text.Lazy (Text)
+import Data.Text.Lazy.Encoding
 import qualified Data.Text.IO as TIO
-import Data.Text.Encoding
 
 import Lens.Micro
 import Lens.Micro.TH
@@ -34,21 +34,25 @@ import Brick.BChan
 import Brick.Widgets.Core
   ( txt )
 
-import Pipes
+
+
+
 
 import MudIO
 import UI
-import AnsiParse
+import Host
+
+--initialState :: UIState
 
 main :: IO ()
 main = do
 
-     (hostname:port:_) <- getArgs
-     --file <- openFile log AppendMode
      handle <- connectMud hostname port
+     file <- openFile "log.txt" WriteMode
+{-
      chan <- newBChan 10
      writeBChan chan $ ServerOutput "Connecting, please wait\n"
-     let mudState = UIState
+     let initialState = UIState
           (E.editorText Input (txt . last) (Just 1) "")
           ""
           []
@@ -56,11 +60,19 @@ main = do
           handle
 
      cfg <- V.standardIOConfig
+ 
+     forkIO $ forever $ do
+         output <- BS.hGetContents handle 
+         
+         when (not $ BS.null output) $ do 
+                writeBChan chan (ServerOutput $ output <> "\n")
+                TIO.hPutStr file $ decodeUtf8 output
 
-     forkIO $ forever $ runEffect $
-       (readMudLine handle) >-> rmAnsi >-> displayLine chan -- pipe version making manipulating output easier
+                              
+       
+     void $ M.customMain (V.mkVty cfg) (Just chan) app initialState
+-}
+     C8.putStrLn "Testing"
 
-
-     void $ M.customMain (V.mkVty cfg) (Just chan) app mudState
-
---     hClose file
+     output <- BS.hGetContents handle
+     BS.putStr output

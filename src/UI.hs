@@ -42,17 +42,18 @@ import Brick.AttrMap
   ( attrMap
   )
 import Brick.Widgets.Core
-  ( 
+  (
     viewport
   , txt
   , vBox
+  , hBox
   , visible
   , hLimit
   )
 
 
 
-import MudIO 
+import MudIO
 -- very simple UI layout
 -- a top viewport for output and
 -- a one row editor for input
@@ -72,16 +73,14 @@ data UIState =
 
 
 makeLenses ''UIState
-          
-
 
 
 drawUi :: UIState -> [T.Widget Name]
 drawUi st = [ui]
-    where 
+    where
         ui = C.center $  --B.border $  hLimit 80 $ -- $ vLimit 24 $
              vBox [ top , B.hBorder , bottom ]
-        top =  viewport Output Vertical $ txt $ st^.output
+        top =  viewport Output Both $  txt $ st^.output
         bottom =  E.renderEditor True $ st^.cli --(E.editorText Input (txt . last) (Just 1) (st^.cmd))
 
 
@@ -93,7 +92,7 @@ outputScroll = M.viewportScroll Output
 
 
 appEvent :: UIState -> T.BrickEvent Name CustomEvent -> T.EventM Name (T.Next UIState)
-appEvent st ev = 
+appEvent st ev =
     case ev of
          T.VtyEvent (V.EvKey V.KEnter [])  -- Enter key pressed, here we need to perform a few things at once
                                            -- 1. update st^.cmd with editor content
@@ -102,14 +101,14 @@ appEvent st ev =
                                            -- 4. continue the application
              -> do
                     let current= head $ E.getEditContents (st^.cli)
-                    liftIO $ TIO.hPutStrLn (st ^. handle) $ current 
+                    liftIO $ TIO.hPutStrLn (st ^. handle) $ current
                     M.continue (st & cmd .~ current & history %~ ( ++ [current] ) & output %~ (<> current) & cli %~ E.applyEdit clearZipper)
          T.VtyEvent (V.EvKey V.KEsc [])    -- Esc pressed, quit the program
              ->  M.halt st
-         T.VtyEvent x                    -- Let the default editor event handler take care of this 
-             -> T.handleEventLensed st cli E.handleEditorEvent x >>= M.continue 
+         T.VtyEvent x                    -- Let the default editor event handler take care of this
+             -> T.handleEventLensed st cli E.handleEditorEvent x >>= M.continue
          T.AppEvent (ServerOutput t)     -- To handle custome evenets; i.e. when outpus is received from server
-                                          -- This is a tricky function since it does several things at once; 
+                                          -- This is a tricky function since it does several things at once;
                                           -- It updates the UIState with the output send through the BChannel
                                           -- and then scrolls the viewport before the application continues
              -> M.vScrollToEnd outputScroll>> M.continue (st & output %~ (<> t))
@@ -118,7 +117,7 @@ appEvent st ev =
 
 app :: M.App UIState CustomEvent Name
 app =
-    M.App { M.appDraw = drawUi 
+    M.App { M.appDraw = drawUi
           , M.appStartEvent = return
           , M.appHandleEvent = appEvent
           , M.appAttrMap = const $ attrMap V.defAttr []

@@ -11,7 +11,7 @@ import Network.Socket hiding (send, sendTo, recv, recvFrom)
 import Network.BSD
 import System.IO hiding (hGetLine)
 import Data.Text  (Text)
-import Data.Text.IO (hGetLine)
+--import Data.Text.IO (hGetLine, hPutStrLn)
 --import Control.Monad (unless)
 --
 import Data.Monoid ((<>))
@@ -23,7 +23,7 @@ import qualified Pipes.Prelude as P
 import Pipes.Attoparsec
 import qualified Data.Attoparsec.Text as A
 import Data.Text (Text)
-
+import qualified Data.Text.IO as T (hGetLine, hPutStrLn)
 
 
 
@@ -45,13 +45,13 @@ connectMud hostname port = do
 
 readMudLine:: Handle -> Producer Text IO ()
 readMudLine h =
-     (liftIO $ hGetLine h) >>= yield
+     (liftIO $ T.hGetLine h) >>= yield
 
 
 
 data CustomEvent = ServerOutput Text
 
 displayLine :: BChan CustomEvent -> Consumer Text IO ()
-displayLine c = do
+displayLine  c = do
      t <- await
-     liftIO $ writeBChan c (ServerOutput  $ t <> "\n")
+     liftIO $ writeBChan c (ServerOutput  $ "\n" <> t)
