@@ -16,9 +16,15 @@ import Data.Text.IO (hGetLine)
 --
 import Data.Monoid ((<>))
 
-import Pipes
-
 import Brick.BChan
+
+import Pipes
+import qualified Pipes.Prelude as P
+import Pipes.Attoparsec
+import qualified Data.Attoparsec.Text as A
+import Data.Text (Text)
+
+
 
 
 connectMud :: HostName -- ^ Remote hostname, or localhost
@@ -38,7 +44,7 @@ connectMud hostname port = do
 -- end of function connectMud
 
 readMudLine:: Handle -> Producer Text IO ()
-readMudLine h = 
+readMudLine h =
      (liftIO $ hGetLine h) >>= yield
 
 
