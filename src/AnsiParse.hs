@@ -15,16 +15,15 @@ import Data.Char (isLetter)
 import Control.Applicative
 
 ansiCon :: A.Parser Text
-ansiCon  = "\27" >> A.takeWhile (/='m') >> "m"
+ansiCon  = fmap (foldl (<>) $ pack "") $ A.many1 ("\27" >> A.takeWhile (/='m') >> "m")
 
-
---rmAnsi :: Monad m => Producer Text m r -> Producer Text m (Either (ParsingError, Producer Text m r) r)
---rmAnsi =  parsed notAnsi
 
 rmAnsi :: Pipe Text Text IO ()
 rmAnsi = do
   x <- await
-  let y = fmap (foldl (<>) $ pack "") $ A.parseOnly (A.sepBy (A.takeWhile (/='\27')) ansiCon) x
+  let y = fmap (foldl (<>) $ pack "") $ A.parseOnly (A.sepBy (A.takeWhile (not . A.isEndOfLine)) ansiCon) x
+
+
   case y of
     Left  e -> yield $ pack e
     Right z -> yield z

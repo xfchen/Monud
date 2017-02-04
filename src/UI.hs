@@ -3,6 +3,8 @@
 
 module UI where
 
+
+import Prelude hiding (log)
 import Control.Applicative hiding (empty)
 import Control.Monad
 import Control.Monad.Trans
@@ -68,7 +70,8 @@ data UIState =
              , _output  :: Text                   -- Output received from the host
              , _history :: [Text]                 -- History of commands inputed by user
              , _cmd     :: Text                   -- Current command, possibly incomplete
-             , _handle  :: Handle
+             , _handle  :: Handle                 -- handle to the server socket
+             , _log     :: Handle                 -- handle to the log file
              }
 
 
@@ -78,7 +81,7 @@ makeLenses ''UIState
 drawUi :: UIState -> [T.Widget Name]
 drawUi st = [ui]
     where
-        ui = C.center $  --B.border $  hLimit 80 $ -- $ vLimit 24 $
+        ui = C.center $ B.border $ -- hLimit 80 $ -- $ vLimit 24 $
              vBox [ top , B.hBorder , bottom ]
         top =  viewport Output Both $  txt $ st^.output
         bottom =  E.renderEditor True $ st^.cli --(E.editorText Input (txt . last) (Just 1) (st^.cmd))
@@ -102,16 +105,20 @@ appEvent st ev =
              -> do
                     let current= head $ E.getEditContents (st^.cli)
                     liftIO $ TIO.hPutStrLn (st ^. handle) $ current
-                    M.continue (st & cmd .~ current & history %~ ( ++ [current] ) & output %~ (<> current) & cli %~ E.applyEdit clearZipper)
+                    M.continue (st & cmd .~ current & history %~ ( ++ [current] ) & output %~ (<> "\n>>>>" <> current) & cli %~ E.applyEdit clearZipper)
          T.VtyEvent (V.EvKey V.KEsc [])    -- Esc pressed, quit the program
              ->  M.halt st
+         T.VtyEvent (V.EvKey (V.KFun 12) [])  -> do  -- F12 pressed, write to log file
+             liftIO $ TIO.hPutStrLn (st^.log) $ (st^.output)
+             M.continue (st & output .~ "")
+
          T.VtyEvent x                    -- Let the default editor event handler take care of this
              -> T.handleEventLensed st cli E.handleEditorEvent x >>= M.continue
          T.AppEvent (ServerOutput t)     -- To handle custome evenets; i.e. when outpus is received from server
                                           -- This is a tricky function since it does several things at once;
                                           -- It updates the UIState with the output send through the BChannel
                                           -- and then scrolls the viewport before the application continues
-             -> M.vScrollToEnd outputScroll>> M.continue (st & output %~ (<> t))
+             -> M.vScrollToEnd outputScroll  >> M.hScrollToBeginning outputScroll >> M.continue (st & output %~ ( <> t))
          _   -> M.continue st
 
 

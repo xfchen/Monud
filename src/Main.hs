@@ -43,8 +43,8 @@ import AnsiParse
 main :: IO ()
 main = do
 
-     (hostname:port:_) <- getArgs
-     --file <- openFile log AppendMode
+     (hostname:port:log:_) <- getArgs
+     file <- openFile log AppendMode
      handle <- connectMud hostname port
      chan <- newBChan 10
      writeBChan chan $ ServerOutput "Connecting, please wait\n"
@@ -54,13 +54,15 @@ main = do
           []
           ""
           handle
+          file
 
      cfg <- V.standardIOConfig
 
      forkIO $ forever $ runEffect $
-       (readMudLine handle) >-> rmAnsi >-> displayLine chan -- pipe version making manipulating output easier
+       (readMudLine handle) >->  rmAnsi  >-> displayLine chan -- pipe version making manipulating output easier
 
 
      void $ M.customMain (V.mkVty cfg) (Just chan) app mudState
 
---     hClose file
+
+     hClose file
