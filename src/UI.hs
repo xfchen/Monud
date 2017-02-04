@@ -83,7 +83,7 @@ drawUi st = [ui]
     where
         ui = C.center $ B.border $ -- hLimit 80 $ -- $ vLimit 24 $
              vBox [ top , B.hBorder , bottom ]
-        top =  viewport Output Both $  txt $ st^.output
+        top =  viewport Output Vertical $  txt $ st^.output
         bottom =  E.renderEditor True $ st^.cli --(E.editorText Input (txt . last) (Just 1) (st^.cmd))
 
 
@@ -118,7 +118,7 @@ appEvent st ev =
                                           -- This is a tricky function since it does several things at once;
                                           -- It updates the UIState with the output send through the BChannel
                                           -- and then scrolls the viewport before the application continues
-             -> M.vScrollToEnd outputScroll  >> M.hScrollToBeginning outputScroll >> M.continue (st & output %~ ( <> t))
+             -> M.vScrollToEnd outputScroll  >>  M.continue (st & output %~ ( <> t))
          _   -> M.continue st
 
 
