@@ -54,13 +54,13 @@ executable Monud
   main-is:             Main.hs
   
   -- Modules included in this executable, other than Main.
-  -- other-modules:       
+  other-modules:      AnsiParse, MudIO, UI
   
   -- LANGUAGE extensions used by modules in this package.
   -- other-extensions:    
   
   -- Other library packages from which modules are imported.
-  build-depends:       base >=4.6 && <4.7, text, text-zipper, bytestring, mtl, network, brick, vty, microlens, microlens-th, unix, pipes, attoparsec, pipes-attoparsec
+  build-depends:       base >=4.6 && <=5, text, text-zipper, bytestring, mtl, network, brick, vty, microlens, microlens-th, unix, pipes, attoparsec, pipes-attoparsec, optparse-applicative
   
   -- Directories containing source files.
   hs-source-dirs:      src
@@ -70,3 +70,6 @@ executable Monud
   
 
   ghc-options: -threaded
+
+
+--exposed-modules: AnsiParse, MudIO, UI
