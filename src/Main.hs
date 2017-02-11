@@ -1,18 +1,19 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 
+
 --------------------------------------------------
 import Control.Applicative
 import Control.Monad
-import Control.Monad.Trans
+--import Control.Monad.Trans
 import Control.Concurrent
 
 import System.IO
 
-import System.Environment
+import Options.Applicative
 
 import Control.Monad (void)
-import Data.Monoid ((<>))
+
 import qualified Graphics.Vty as V
 import Data.Text (Text, null)
 import qualified Data.Text.IO as TIO
@@ -39,11 +40,43 @@ import Pipes
 import MudIO
 import UI
 import AnsiParse
+import InputParse
+
+data Options = Options
+  { hostname    ::  String
+  , port :: String
+  , file :: String }
+
+parseOptions :: Parser Options
+parseOptions =  Options
+        <$> strOption
+            ( long "hostname"
+            <> short 'h'
+            <> metavar "HOSTNAME"
+            <> help "ip/FQDN of the Mud server" )
+        <*> strOption
+            ( long "port"
+            <> short 'p'
+            <> metavar "PORT"
+            <> help "port number the Mud server listens on")
+        <*> strOption
+            ( long "log"
+            <> short 'l'
+            <> metavar "LOGFILE"
+            <> help "file to log the session")
+
 
 main :: IO ()
-main = do
+main = session =<< execParser opts
+  where
+    opts = info (parseOptions <**> helper)
+      (  fullDesc
+      <> progDesc "Monud -- A Mud client written in Haskell"
+      <> header "Thank you for using Monud")
 
-     (hostname:port:log:_) <- getArgs
+session :: Options -> IO ()
+session(Options hostname port log) = do
+
      file <- openFile log AppendMode
      handle <- connectMud hostname port
      chan <- newBChan 10
@@ -55,6 +88,7 @@ main = do
           ""
           handle
           file
+
 
      cfg <- V.standardIOConfig
 

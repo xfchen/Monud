@@ -48,10 +48,9 @@ readMudLine h =
      (liftIO $ T.hGetLine h) >>= yield
 
 
-
 data CustomEvent = ServerOutput Text
 
 displayLine :: BChan CustomEvent -> Consumer Text IO ()
 displayLine  c = do
      t <- await
-     liftIO $ writeBChan c (ServerOutput  $ "\n" <> t)
+     liftIO $ writeBChan c (ServerOutput  t)
